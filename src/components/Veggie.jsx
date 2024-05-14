@@ -21,7 +21,6 @@ img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-
 }
 
 p{
@@ -39,8 +38,8 @@ p{
     display: flex;
     justify-content: center;
     align-items: center;
-}
-;`
+};
+`;
 
 const Gradient = styled.div`
     z-index: 3;
@@ -51,60 +50,76 @@ const Gradient = styled.div`
 `;
 
 
-function Veggie () {
+const Veggie = () =>
+{
 
-    const [veggie, setVeggie] = useState([]);
+    // const TEST_API_URL = 'https://api.npoint.io/2fea28b538c1462665a0';
+    const API_URL = `https://api.spoonacular.com/recipes/random?apiKey=${import.meta.env.VITE_APP_API_KEY}&number=9`;
+    const [veggie_recipes, setVeggieRecipes] = useState([]);
 
-    useEffect(() => {
-        getVeggie();
-    }, []);
-
-    const getVeggie = async () => {
-
-        const check = localStorage.getItem('veggie');
-
-        if(check) {
-            setVeggie(JSON.parse(check));
-        } else {
-            const api = await fetch(
-                `https://api.spoonacular.com/recipes/random?apiKey=${process.env.REACT_APP_API_KEY}&number=9&tags=vegetarian`
-            );
-            
-        const data = await api.json();
-
-        localStorage.setItem("veggie", JSON.stringify(data.recipes));
-        setVeggie(data.recipes);
-        console.log(data.recipes);
-
+    useEffect( () => {
+        const handleRetrieveRecipes = async () => 
+        {
+            const cached_veggie_recipes = localStorage.getItem('cached_veggie_recipes');
+    
+            // If cache exists, use that in component state
+            if(cached_veggie_recipes) return setVeggieRecipes(JSON.parse(cached_veggie_recipes)?.recipes ?? []);
+    
+            console.log('fetching recipes from API')
+    
+            // initiates fetch request to Recipe API
+            return await fetch(API_URL)
+                .then(
+                    // Resolve the returned promise into usable JSON
+                    (res) => res.json()
+                ).then(
+                    // Once the data is resolved, take that value and inject it into component state
+                    (response_data) => {
+                        console.log(response_data)
+                        const recipes = response_data.recipes ?? [];
+                        console.log(recipes);
+                        setVeggieRecipes(recipes);
+                        localStorage.setItem('cached_veggie_recipes', JSON.stringify({recipes, cache_time: new Date()}));
+                    }
+                )
+                .catch(
+                    (error) => {
+                        console.log(error)
+                    }
+                )
         }
-    };
+
+        if (!veggie_recipes.length > 0) handleRetrieveRecipes()
+
+    }, []);
 
     return (
         <div>
-                    <Wrapper>
-                        <h3>Veggie Picks</h3>
-
-                        <Splide
-                        options = {{
-                            perPage: 4,
-                            arrows: false,
-                            pagination: false,
-                            drag: "free",
-                            gap: "5rem",
-                        }}>
-                            {veggie.map((recipe) => (
-                                <SplideSlide key = {recipe.id}>
-                                    <Card>
-                                        <p>{recipe.title}</p>
-                                        <img src={recipe.image} alt={recipe.title} />
-                                        <Gradient/>
-                                    </Card>
-                                </SplideSlide>
-                        ))};
-                        </Splide>
-                    </Wrapper>
+            <Wrapper>
+                <h3>Veggie Picks</h3>
+                <Splide
+                    options = {{
+                        perPage: 4,
+                        arrows: false,
+                        pagination: false,
+                        drag: "free",
+                        gap: "5rem",
+                    }}>
+                    {veggie_recipes?.map((recipe) => (
+                        <SplideSlide key = {recipe.id}>
+                            <Card>
+                                <p>{recipe.title}</p>
+                                <img src={recipe.image} alt={recipe.title} />
+                                {/* <Gradient/> */}
+                            {/* </Card> */}
+                            </Card>
+                        </SplideSlide>
+                ))};
+                </Splide>
+            </Wrapper>
         </div>
     );
-}
+};
+
 
 export default Veggie;
